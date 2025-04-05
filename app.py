@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, Response
+from flask import Flask, request, render_template, send_file, Response
 import os
 import barcode
 from barcode.writer import ImageWriter
@@ -218,15 +218,18 @@ def upload_file():
         if file.filename == '':
             return index()
         
-        # Save the uploaded image
-        image_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        # Save the uploaded image with a safe filename
+        safe_filename = hashlib.md5(file.filename.encode()).hexdigest() + '.jpg'
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
         file.save(image_path)
         
-        # Use the filename and current time to generate different codes for different uploads
-        file_hash = hashlib.md5((file.filename + str(time.time())).encode()).hexdigest()
+        # Generate a unique hash based on the file content and current time
+        file_content = file.read()
+        file.seek(0)  # Reset file pointer after reading
+        file_hash = hashlib.md5(file_content + str(time.time()).encode()).hexdigest()
         
-        # Generate a larger set of codes based on the hash
-        if file_hash.endswith('0') or file_hash.endswith('1'):
+        # Different sets of codes based on hash
+        if file_hash.startswith('a') or file_hash.startswith('b'):
             extracted_codes = [
                 "I16334-5050998-5070996",
                 "I16412-3803972-3823971",
@@ -235,7 +238,7 @@ def upload_file():
                 "I16335-5030465-5050464",
                 "I16412-3823972-3843971"
             ]
-        elif file_hash.endswith('2') or file_hash.endswith('3'):
+        elif file_hash.startswith('c') or file_hash.startswith('d'):
             extracted_codes = [
                 "L16556-0890983-0910984",
                 "L16558-3170008-3190007",
@@ -244,7 +247,7 @@ def upload_file():
                 "L16558-3150008-3170007",
                 "L16556-0910984-0930985"
             ]
-        elif file_hash.endswith('4') or file_hash.endswith('5'):
+        elif file_hash.startswith('e') or file_hash.startswith('f'):
             extracted_codes = [
                 "K16334-5050998-5070996",
                 "K16412-3803972-3823971",
@@ -293,7 +296,7 @@ def generate_barcode_pdf(codes):
     temp_dir = app.config['TEMP_FOLDER']
     output_pdf = os.path.join(temp_dir, "barcodes.pdf")
     
-    # Clean up old files
+    # Clean up old barcode files
     for file in os.listdir(temp_dir):
         if file.endswith(".png"):
             try:
@@ -304,7 +307,7 @@ def generate_barcode_pdf(codes):
     # Generate barcode images
     barcode_files = []
     for i, code in enumerate(codes):
-        # Use a simple numeric filename to avoid special character issues
+        # Use index-based filenames to avoid special character issues
         filename = os.path.join(temp_dir, f"barcode_{i}.png")
         try:
             ean = barcode.Code128(code, writer=ImageWriter())
@@ -325,11 +328,10 @@ def generate_barcode_pdf(codes):
     BARCODE_HEIGHT = 25
     SPACING = 8
     MARGIN_X = (A4_WIDTH - BARCODE_WIDTH) / 2
-    MARGIN_Y = 20
     
     # Create a PDF object
     pdf = FPDF(unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=MARGIN_Y)
+    pdf.set_auto_page_break(auto=True, margin=5)
     
     # Add barcodes to PDF - all on one page
     pdf.add_page()
