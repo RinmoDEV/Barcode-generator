@@ -98,6 +98,7 @@ def index():
                 border-radius: 5px;
                 margin-bottom: 20px;
                 transition: border-color 0.3s;
+                cursor: pointer;
             }
             .upload-area:hover {
                 border-color: #e74c3c;
@@ -159,12 +160,12 @@ def index():
                 
                 <div id="upload-tab" class="tab-content active">
                     <form method="POST" action="/upload" enctype="multipart/form-data">
-                        <div class="upload-area" onclick="triggerFileInput()">
+                        <div class="upload-area" onclick="document.getElementById('file-input').click()">
                             <p class="upload-text">Click to select an image or drag and drop here</p>
                             <input type="file" name="file" id="file-input" class="file-input" accept="image/*" onchange="updateFileName()">
                             <p id="file-name"></p>
                             <p class="or-divider">or</p>
-                            <button type="button" class="btn" onclick="triggerFileInput()">Select Image</button>
+                            <button type="button" class="btn" onclick="document.getElementById('file-input').click()">Select Image</button>
                         </div>
                         <button type="submit" class="btn">Generate Barcodes</button>
                     </form>
@@ -194,21 +195,39 @@ def index():
                 evt.currentTarget.className += " active";
             }
             
-            function triggerFileInput() {
-                document.getElementById('file-input').click();
-            }
-            
             function updateFileName() {
-                var fileName = document.getElementById('file-input').value.split('\\').pop();
+                var fileName = document.getElementById('file-input').value.split('\\\\').pop();
                 if (fileName) {
                     document.getElementById('file-name').innerHTML = "Selected file: " + fileName;
                 }
             }
+            
+            // Initialize the page
+            document.addEventListener('DOMContentLoaded', function() {
+                // Make sure the first tab is active
+                document.getElementsByClassName('tab')[0].className += " active";
+                document.getElementById('upload-tab').className += " active";
+            });
         </script>
     </body>
     </html>
     '''
     return Response(html, mimetype='text/html')
+
+@app.route('/generate', methods=['POST'])
+def generate_from_text():
+    codes_text = request.form.get('codes', '')
+    if not codes_text.strip():
+        return index()
+    
+    # Split the text into lines and remove empty lines
+    codes = [line.strip() for line in codes_text.split('\n') if line.strip()]
+    
+    # Generate PDF with barcodes
+    pdf_path = generate_barcode_pdf(codes)
+    
+    # Return the PDF file
+    return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -235,21 +254,6 @@ def upload_file():
     
     # Generate PDF with barcodes
     pdf_path = generate_barcode_pdf(extracted_codes)
-    
-    # Return the PDF file
-    return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
-
-@app.route('/generate', methods=['POST'])
-def generate_from_text():
-    codes_text = request.form.get('codes', '')
-    if not codes_text.strip():
-        return index()
-    
-    # Split the text into lines and remove empty lines
-    codes = [line.strip() for line in codes_text.split('\n') if line.strip()]
-    
-    # Generate PDF with barcodes
-    pdf_path = generate_barcode_pdf(codes)
     
     # Return the PDF file
     return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
