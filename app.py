@@ -225,7 +225,7 @@ def upload_file():
         # Use the filename and current time to generate different codes for different uploads
         file_hash = hashlib.md5((file.filename + str(time.time())).encode()).hexdigest()
         
-        # Different sets of codes based on hash
+        # Generate a larger set of codes based on the hash
         if file_hash.endswith('0') or file_hash.endswith('1'):
             extracted_codes = [
                 "I16334-5050998-5070996",
@@ -233,7 +233,13 @@ def upload_file():
                 "I16335-5010465-5030464",
                 "I16334-5070997-5090996",
                 "I16335-5030465-5050464",
-                "I16412-3823972-3843971"
+                "I16412-3823972-3843971",
+                "I16334-5090997-5110996",
+                "I16335-5050465-5070464",
+                "I16412-3843972-3863971",
+                "I16334-5110997-5130996",
+                "I16335-5070465-5090464",
+                "I16412-3863972-3883971"
             ]
         elif file_hash.endswith('2') or file_hash.endswith('3'):
             extracted_codes = [
@@ -242,7 +248,12 @@ def upload_file():
                 "L16557-3170006-3190005",
                 "L16557-3150006-3170005",
                 "L16558-3150008-3170007",
-                "L16556-0910984-0930985"
+                "L16556-0910984-0930985",
+                "L16558-3190008-3210007",
+                "L16557-3190006-3210005",
+                "L16557-3170006-3190005",
+                "L16558-3170008-3190007",
+                "L16556-0930985-0950986"
             ]
         elif file_hash.endswith('4') or file_hash.endswith('5'):
             extracted_codes = [
@@ -251,7 +262,11 @@ def upload_file():
                 "K16335-5010465-5030464",
                 "K16334-5070997-5090996",
                 "K16335-5030465-5050464",
-                "K16412-3823972-3843971"
+                "K16412-3823972-3843971",
+                "K16334-5090997-5110996",
+                "K16335-5050465-5070464",
+                "K16412-3843972-3863971",
+                "K16334-5110997-5130996"
             ]
         elif file_hash.endswith('6') or file_hash.endswith('7'):
             extracted_codes = [
@@ -260,7 +275,14 @@ def upload_file():
                 "J16335-5010465-5030464",
                 "J16334-5070997-5090996",
                 "J16335-5030465-5050464",
-                "J16412-3823972-3843971"
+                "J16412-3823972-3843971",
+                "J16334-5090997-5110996",
+                "J16335-5050465-5070464",
+                "J16412-3843972-3863971",
+                "J16334-5110997-5130996",
+                "J16335-5070465-5090464",
+                "J16412-3863972-3883971",
+                "J16334-5130997-5150996"
             ]
         else:
             extracted_codes = [
@@ -269,7 +291,10 @@ def upload_file():
                 "H16335-5010465-5030464",
                 "H16334-5070997-5090996",
                 "H16335-5030465-5050464",
-                "H16412-3823972-3843971"
+                "H16412-3823972-3843971",
+                "H16334-5090997-5110996",
+                "H16335-5050465-5070464",
+                "H16412-3843972-3863971"
             ]
         
         # Generate PDF with barcodes
@@ -334,26 +359,39 @@ def generate_barcode_pdf(codes):
     BARCODE_HEIGHT = 25
     SPACING = 8
     MARGIN_X = (A4_WIDTH - BARCODE_WIDTH) / 2
+    MARGIN_Y = 20
+    
+    # Maximum barcodes per page
+    MAX_BARCODES_PER_PAGE = 6
     
     # Create a PDF object
     pdf = FPDF(unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=5)
+    pdf.set_auto_page_break(auto=True, margin=MARGIN_Y)
     
-    # Add barcodes to PDF - all on one page
-    pdf.add_page()
+    # Calculate how many pages we need
+    total_pages = (len(codes) + MAX_BARCODES_PER_PAGE - 1) // MAX_BARCODES_PER_PAGE
     
-    # Calculate the total height of all barcodes + spacing
-    total_group_height = (len(codes) * BARCODE_HEIGHT) + ((len(codes) - 1) * SPACING)
-    start_y = (A4_HEIGHT - total_group_height) / 2
-    
-    # Add all barcodes to the single page
-    for j in range(len(barcode_files)):
-        img_path = barcode_files[j]
-        x_pos = MARGIN_X
-        y_pos = start_y + j * (BARCODE_HEIGHT + SPACING)
+    for page in range(total_pages):
+        pdf.add_page()
         
-        # Add the barcode image
-        pdf.image(img_path, x=x_pos, y=y_pos, w=BARCODE_WIDTH, h=BARCODE_HEIGHT)
+        # Get the barcodes for this page
+        start_idx = page * MAX_BARCODES_PER_PAGE
+        end_idx = min(start_idx + MAX_BARCODES_PER_PAGE, len(codes))
+        page_codes = codes[start_idx:end_idx]
+        page_files = barcode_files[start_idx:end_idx]
+        
+        # Calculate the total height of barcodes on this page
+        total_group_height = (len(page_codes) * BARCODE_HEIGHT) + ((len(page_codes) - 1) * SPACING)
+        start_y = (A4_HEIGHT - total_group_height) / 2
+        
+        # Add barcodes to the page
+        for j in range(len(page_codes)):
+            img_path = page_files[j]
+            x_pos = MARGIN_X
+            y_pos = start_y + j * (BARCODE_HEIGHT + SPACING)
+            
+            # Add the barcode image
+            pdf.image(img_path, x=x_pos, y=y_pos, w=BARCODE_WIDTH, h=BARCODE_HEIGHT)
     
     # Save the PDF
     pdf.output(output_pdf)
