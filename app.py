@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, Response
+from flask import Flask, request, send_file, Response
 import os
 import barcode
 from barcode.writer import ImageWriter
@@ -14,7 +14,7 @@ os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
-    # Create a simple HTML page directly in the code
+    # Inline HTML template
     html = '''
     <!DOCTYPE html>
     <html>
@@ -201,62 +201,63 @@ def index():
                     document.getElementById('file-name').innerHTML = "Selected file: " + fileName;
                 }
             }
-            
-            // Initialize the page
-            document.addEventListener('DOMContentLoaded', function() {
-                // Make sure the first tab is active
-                document.getElementsByClassName('tab')[0].className += " active";
-                document.getElementById('upload-tab').className += " active";
-            });
         </script>
     </body>
     </html>
     '''
     return Response(html, mimetype='text/html')
 
-@app.route('/generate', methods=['POST'])
-def generate_from_text():
-    codes_text = request.form.get('codes', '')
-    if not codes_text.strip():
-        return index()
-    
-    # Split the text into lines and remove empty lines
-    codes = [line.strip() for line in codes_text.split('\n') if line.strip()]
-    
-    # Generate PDF with barcodes
-    pdf_path = generate_barcode_pdf(codes)
-    
-    # Return the PDF file
-    return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        return index()
-    
-    file = request.files['file']
-    if file.filename == '':
-        return index()
-    
-    # Save the uploaded image
-    image_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(image_path)
-    
-    # For now, we'll use hardcoded codes
-    extracted_codes = [
-        "I16334-5050998-5070996",
-        "I16412-3803972-3823971",
-        "I16335-5010465-5030464",
-        "I16334-5070997-5090996",
-        "I16335-5030465-5050464",
-        "I16412-3823972-3843971"
-    ]
-    
-    # Generate PDF with barcodes
-    pdf_path = generate_barcode_pdf(extracted_codes)
-    
-    # Return the PDF file
-    return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
+    try:
+        if 'file' not in request.files:
+            return index()
+        
+        file = request.files['file']
+        if file.filename == '':
+            return index()
+        
+        # Save the uploaded image
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+        file.save(image_path)
+        
+        # For now, we'll use hardcoded codes
+        extracted_codes = [
+            "I16334-5050998-5070996",
+            "I16412-3803972-3823971",
+            "I16335-5010465-5030464",
+            "I16334-5070997-5090996",
+            "I16335-5030465-5050464",
+            "I16412-3823972-3843971"
+        ]
+        
+        # Generate PDF with barcodes
+        pdf_path = generate_barcode_pdf(extracted_codes)
+        
+        # Return the PDF file
+        return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
+    except Exception as e:
+        print(f"Error in upload_file: {str(e)}")
+        return Response(f"An error occurred: {str(e)}", status=500)
+
+@app.route('/generate', methods=['POST'])
+def generate_from_text():
+    try:
+        codes_text = request.form.get('codes', '')
+        if not codes_text.strip():
+            return index()
+        
+        # Split the text into lines and remove empty lines
+        codes = [line.strip() for line in codes_text.split('\n') if line.strip()]
+        
+        # Generate PDF with barcodes
+        pdf_path = generate_barcode_pdf(codes)
+        
+        # Return the PDF file
+        return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
+    except Exception as e:
+        print(f"Error in generate_from_text: {str(e)}")
+        return Response(f"An error occurred: {str(e)}", status=500)
 
 def generate_barcode_pdf(codes):
     temp_dir = app.config['TEMP_FOLDER']
