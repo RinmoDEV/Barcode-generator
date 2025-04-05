@@ -228,7 +228,14 @@ def upload_file():
             "I16335-5010465-5030464",
             "I16334-5070997-5090996",
             "I16335-5030465-5050464",
-            "I16412-3823972-3843971"
+            "I16412-3823972-3843971",
+            # Add more codes to test multiple pages
+            "L16556-0890983-0910984",
+            "L16558-3170008-3190007",
+            "L16557-3170006-3190005",
+            "L16557-3150006-3170005",
+            "L16558-3150008-3170007",
+            "L16556-0910984-0930985"
         ]
         
         # Generate PDF with barcodes
@@ -301,8 +308,8 @@ def generate_barcode_pdf(codes):
         MARGIN_X = (A4_WIDTH - BARCODE_WIDTH) / 2
         MARGIN_Y = 20
         
-        # Maximum barcodes per page (adjust as needed)
-        MAX_BARCODES_PER_PAGE = 8
+        # Maximum barcodes per page (limit to 6)
+        MAX_BARCODES_PER_PAGE = 6
         
         # Create a PDF object
         pdf = FPDF(unit="mm", format="A4")
@@ -320,21 +327,16 @@ def generate_barcode_pdf(codes):
             page_barcodes = barcode_files[start_idx:end_idx]
             
             # Calculate the total height of barcodes on this page
-            total_group_height = (len(page_barcodes) * (BARCODE_HEIGHT + 5)) + ((len(page_barcodes) - 1) * SPACING)
+            total_group_height = (len(page_barcodes) * BARCODE_HEIGHT) + ((len(page_barcodes) - 1) * SPACING)
             start_y = (A4_HEIGHT - total_group_height) / 2
             
             # Add barcodes to the page
-            for j, (img_path, code) in enumerate(page_barcodes):
+            for j, (img_path, _) in enumerate(page_barcodes):
                 x_pos = MARGIN_X
-                y_pos = start_y + j * (BARCODE_HEIGHT + SPACING + 5)
+                y_pos = start_y + j * (BARCODE_HEIGHT + SPACING)
                 
                 # Add the barcode image
                 pdf.image(img_path, x=x_pos, y=y_pos, w=BARCODE_WIDTH, h=BARCODE_HEIGHT)
-                
-                # Add the code text below the barcode
-                pdf.set_font('Arial', '', 10)
-                pdf.set_xy(x_pos, y_pos + BARCODE_HEIGHT)
-                pdf.cell(BARCODE_WIDTH, 5, code, 0, 1, 'C')
         
         # Save the PDF
         pdf.output(output_pdf)
