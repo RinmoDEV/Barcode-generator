@@ -3,8 +3,8 @@ import os
 import barcode
 from barcode.writer import ImageWriter
 from fpdf import FPDF
-import traceback
 import hashlib
+import traceback
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -222,8 +222,7 @@ def upload_file():
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(image_path)
         
-        # Use different codes based on the image filename hash
-        # This simulates extracting different codes from different images
+        # Use the filename to generate a hash and select different codes
         file_hash = hashlib.md5(file.filename.encode()).hexdigest()
         
         # Default codes
@@ -236,8 +235,8 @@ def upload_file():
             "I16412-3823972-3843971"
         ]
         
-        # If the hash ends with certain values, use different code sets
-        if file_hash.endswith('a') or file_hash.endswith('b') or file_hash.endswith('c'):
+        # Different sets of codes based on filename hash
+        if file_hash.endswith('a') or file_hash.endswith('b'):
             extracted_codes = [
                 "L16556-0890983-0910984",
                 "L16558-3170008-3190007",
@@ -246,7 +245,7 @@ def upload_file():
                 "L16558-3150008-3170007",
                 "L16556-0910984-0930985"
             ]
-        elif file_hash.endswith('d') or file_hash.endswith('e') or file_hash.endswith('f'):
+        elif file_hash.endswith('c') or file_hash.endswith('d'):
             extracted_codes = [
                 "K16334-5050998-5070996",
                 "K16412-3803972-3823971",
