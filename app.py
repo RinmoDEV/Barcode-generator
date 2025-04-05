@@ -238,7 +238,7 @@ def upload_file():
         # Return the PDF file
         return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
     except Exception as e:
-        error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Error in upload_file: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return Response(f"An error occurred: {str(e)}", status=500)
 
@@ -258,65 +258,82 @@ def generate_from_text():
         # Return the PDF file
         return send_file(pdf_path, as_attachment=True, download_name='barcodes.pdf')
     except Exception as e:
-        error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Error in generate_from_text: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return Response(f"An error occurred: {str(e)}", status=500)
 
 def generate_barcode_pdf(codes):
-    # Make sure temp directory exists
-    temp_dir = app.config['TEMP_FOLDER']
-    os.makedirs(temp_dir, exist_ok=True)
-    
-    output_pdf = os.path.join(temp_dir, "barcodes.pdf")
-    
-    # Generate barcode images
-    barcode_files = []
-    for code in codes:
-        # Create a safe filename by replacing problematic characters
-        safe_code = "".join([c if c.isalnum() else "_" for c in code])
-        filename = os.path.join(temp_dir, f"{safe_code}.png")
+    try:
+        # Make sure temp directory exists with proper permissions
+        temp_dir = app.config['TEMP_FOLDER']
+        os.makedirs(temp_dir, exist_ok=True)
         
-        # Generate the barcode
-        ean = barcode.Code128(code, writer=ImageWriter())
-        ean.save(filename)
+        output_pdf = os.path.join(temp_dir, "barcodes.pdf")
         
-        # Verify the file was created
-        if not os.path.exists(filename):
-            raise FileNotFoundError(f"Failed to create barcode image: {filename}")
+        # Generate barcode images
+        barcode_files = []
+        for i, code in enumerate(codes):
+            # Use a simple numeric filename instead of the code itself
+            filename = os.path.join(temp_dir, f"barcode_{i}.png")
             
-        barcode_files.append(filename)
-    
-    # A4 page size in mm
-    A4_WIDTH, A4_HEIGHT = 210, 297
-    BARCODE_WIDTH = 80
-    BARCODE_HEIGHT = 25
-    SPACING = 8
-    MARGIN_X = (A4_WIDTH - BARCODE_WIDTH) / 2
-    
-    # Create a PDF object
-    pdf = FPDF(unit="mm", format="A4")
-    pdf.set_auto_page_break(auto=True, margin=5)
-    
-    # Add barcodes to PDF - all on one page
-    pdf.add_page()
-    
-    # Calculate the total height of all barcodes + spacing
-    total_group_height = (len(codes) * BARCODE_HEIGHT) + ((len(codes) - 1) * SPACING)
-    start_y = (A4_HEIGHT - total_group_height) / 2
-    
-    # Add all barcodes to the single page
-    for j in range(len(codes)):
-        img_path = barcode_files[j]
-        x_pos = MARGIN_X
-        y_pos = start_y + j * (BARCODE_HEIGHT + SPACING)
+            try:
+                # Generate the barcode
+                ean = barcode.Code128(code, writer=ImageWriter())
+                ean.save(filename)
+                
+                # Verify the file was created
+                if not os.path.exists(filename):
+                    print(f"Warning: File not created: {filename}")
+                    continue
+                    
+                barcode_files.append((filename, code))
+            except Exception as e:
+                print(f"Error generating barcode for code {code}: {str(e)}")
+                continue
         
-        # Add the barcode image
-        pdf.image(img_path, x=x_pos, y=y_pos, w=BARCODE_WIDTH, h=BARCODE_HEIGHT)
-    
-    # Save the PDF
-    pdf.output(output_pdf)
-    
-    return output_pdf
+        if not barcode_files:
+            raise ValueError("No valid barcodes could be generated")
+        
+        # A4 page size in mm
+        A4_WIDTH, A4_HEIGHT = 210, 297
+        BARCODE_WIDTH = 80
+        BARCODE_HEIGHT = 25
+        SPACING = 8
+        MARGIN_X = (A4_WIDTH - BARCODE_WIDTH) / 2
+        
+        # Create a PDF object
+        pdf = FPDF(unit="mm", format="A4")
+        pdf.set_auto_page_break(auto=True, margin=5)
+        pdf.add_font('Arial', '', 'Helvetica', uni=True)
+        pdf.set_font('Arial', '', 10)
+        
+        # Add barcodes to PDF - all on one page
+        pdf.add_page()
+        
+        # Calculate the total height of all barcodes + spacing
+        total_group_height = (len(barcode_files) * (BARCODE_HEIGHT + 5)) + ((len(barcode_files) - 1) * SPACING)
+        start_y = (A4_HEIGHT - total_group_height) / 2
+        
+        # Add all barcodes to the single page
+        for j, (img_path, code) in enumerate(barcode_files):
+            x_pos = MARGIN_X
+            y_pos = start_y + j * (BARCODE_HEIGHT + SPACING + 5)
+            
+            # Add the barcode image
+            pdf.image(img_path, x=x_pos, y=y_pos, w=BARCODE_WIDTH, h=BARCODE_HEIGHT)
+            
+            # Add the code text below the barcode
+            pdf.set_xy(x_pos, y_pos + BARCODE_HEIGHT)
+            pdf.cell(BARCODE_WIDTH, 5, code, 0, 1, 'C')
+        
+        # Save the PDF
+        pdf.output(output_pdf)
+        
+        return output_pdf
+    except Exception as e:
+        error_msg = f"Error in generate_barcode_pdf: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
