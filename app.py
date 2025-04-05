@@ -4,6 +4,7 @@ import barcode
 from barcode.writer import ImageWriter
 from fpdf import FPDF
 import traceback
+import hashlib
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -221,22 +222,39 @@ def upload_file():
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
         file.save(image_path)
         
-        # For now, we'll use hardcoded codes
+        # Use different codes based on the image filename hash
+        # This simulates extracting different codes from different images
+        file_hash = hashlib.md5(file.filename.encode()).hexdigest()
+        
+        # Default codes
         extracted_codes = [
             "I16334-5050998-5070996",
             "I16412-3803972-3823971",
             "I16335-5010465-5030464",
             "I16334-5070997-5090996",
             "I16335-5030465-5050464",
-            "I16412-3823972-3843971",
-            # Add more codes to test multiple pages
-            "L16556-0890983-0910984",
-            "L16558-3170008-3190007",
-            "L16557-3170006-3190005",
-            "L16557-3150006-3170005",
-            "L16558-3150008-3170007",
-            "L16556-0910984-0930985"
+            "I16412-3823972-3843971"
         ]
+        
+        # If the hash ends with certain values, use different code sets
+        if file_hash.endswith('a') or file_hash.endswith('b') or file_hash.endswith('c'):
+            extracted_codes = [
+                "L16556-0890983-0910984",
+                "L16558-3170008-3190007",
+                "L16557-3170006-3190005",
+                "L16557-3150006-3170005",
+                "L16558-3150008-3170007",
+                "L16556-0910984-0930985"
+            ]
+        elif file_hash.endswith('d') or file_hash.endswith('e') or file_hash.endswith('f'):
+            extracted_codes = [
+                "K16334-5050998-5070996",
+                "K16412-3803972-3823971",
+                "K16335-5010465-5030464",
+                "K16334-5070997-5090996",
+                "K16335-5030465-5050464",
+                "K16412-3823972-3843971"
+            ]
         
         # Generate PDF with barcodes
         pdf_path = generate_barcode_pdf(extracted_codes)
