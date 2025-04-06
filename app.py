@@ -3,7 +3,6 @@ import os
 import barcode
 from barcode.writer import ImageWriter
 from fpdf import FPDF
-import hashlib
 
 app = Flask(__name__)
 app.config['TEMP_FOLDER'] = 'temp'
