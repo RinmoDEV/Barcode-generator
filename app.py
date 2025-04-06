@@ -9,9 +9,19 @@ import time
 import pytesseract
 from PIL import Image
 import re
+import sys
 
-# Configure Tesseract path (adjust if needed)
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Configure Tesseract path with explicit path
+TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+OCR_ENABLED = False
+
+try:
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+    pytesseract.get_tesseract_version()
+    OCR_ENABLED = True
+except Exception as e:
+    print(f"Tesseract initialization error: {str(e)}", file=sys.stderr)
+    OCR_ENABLED = False
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -218,6 +228,13 @@ def index():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
+        if not OCR_ENABLED:
+            return Response(
+                "OCR functionality is not available. Tesseract was found but failed to initialize. "
+                f"Please verify the installation at: {TESSERACT_PATH}",
+                status=501
+            )
+            
         if 'file' not in request.files:
             return index()
         
