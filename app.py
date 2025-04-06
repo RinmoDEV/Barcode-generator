@@ -11,29 +11,38 @@ from PIL import Image
 import re
 import sys
 
-# Configure Tesseract path with explicit path and better error handling
-TESSERACT_PATH = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+# Configure Tesseract path with better error handling and deployment support
+TESSERACT_PATH = None
 OCR_ENABLED = False
 TESSERACT_ERROR = None
 
-try:
-    # Verify the executable exists
-    if not os.path.exists(TESSERACT_PATH):
-        TESSERACT_ERROR = f"Tesseract executable not found at: {TESSERACT_PATH}"
-    else:
-        pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
-        try:
-            # Get version directly since we know it works
+# Try multiple possible Tesseract locations
+possible_paths = [
+    r'C:\Program Files\Tesseract-OCR\tesseract.exe',  # Windows default
+    '/usr/bin/tesseract',  # Linux common location
+    '/usr/local/bin/tesseract',  # Mac/alternative Linux
+    'tesseract'  # If it's in PATH
+]
+
+for path in possible_paths:
+    try:
+        if os.path.exists(path):
+            pytesseract.pytesseract.tesseract_cmd = path
             version = pytesseract.get_tesseract_version()
-            print(f"Tesseract initialized successfully. Version: {version}")
+            print(f"Tesseract initialized successfully at {path}. Version: {version}")
+            TESSERACT_PATH = path
             OCR_ENABLED = True
-        except Exception as e:
-            TESSERACT_ERROR = f"Tesseract initialization error: {str(e)}"
-            print(TESSERACT_ERROR, file=sys.stderr)
-            
-except Exception as e:
-    TESSERACT_ERROR = f"Unexpected error during Tesseract initialization: {str(e)}"
-    print(TESSERACT_ERROR, file=sys.stderr)
+            break
+    except Exception as e:
+        TESSERACT_ERROR = f"Error initializing Tesseract at {path}: {str(e)}"
+        print(TESSERACT_ERROR, file=sys.stderr)
+
+if not OCR_ENABLED:
+    error_msg = "OCR functionality is not available.\n"
+    if TESSERACT_ERROR:
+        error_msg += f"Last error: {TESSERACT_ERROR}\n"
+    error_msg += "Please verify Tesseract OCR is installed and accessible."
+    print(error_msg, file=sys.stderr)
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
