@@ -10,7 +10,7 @@ os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
-    return '''
+    return """
     <!DOCTYPE html>
     <html>
     <head>
@@ -85,7 +85,7 @@ def index():
         <div class="container">
             <h1>Barcode Generator</h1>
             <form method="POST" action="/generate">
-                <textarea name="codes" placeholder="Enter codes here, one per line&#10;Example:&#10;I16334-5050998-5070996&#10;I16412-3803972-3823971"></textarea>
+                <textarea name="codes" placeholder="Enter codes here, one per line"></textarea>
                 <button type="submit" class="btn">Generate Barcodes</button>
             </form>
             <div class="instructions">
@@ -102,7 +102,7 @@ def index():
         </div>
     </body>
     </html>
-    '''
+    """
 
 @app.route('/generate', methods=['POST'])
 def generate_from_text():
@@ -161,4 +161,4 @@ def generate_barcode_pdf(codes):
     return output_pdf
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=10000, debug=False)
